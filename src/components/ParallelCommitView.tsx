@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { PROMPT } from '../data/claudeCommit.js';
@@ -24,6 +24,11 @@ interface Props {
 
 export function ParallelCommitView({ repoPaths }: Props) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
+  const termWidth = stdout?.columns ?? 120;
+  // padding=1 adds 2 chars each side, gap=1 between columns, border takes 2 per col
+  const availableWidth = termWidth - 2;
+  const colWidth = Math.floor((availableWidth - (repoPaths.length - 1)) / repoPaths.length);
   const [columns, setColumns] = useState<Column[]>(
     repoPaths.map((p) => ({
       name: p.split('/').pop() ?? p,
@@ -156,7 +161,7 @@ export function ParallelCommitView({ repoPaths }: Props) {
             flexDirection="column"
             borderStyle="round"
             borderColor={col.done ? 'green' : 'cyan'}
-            flexGrow={1}
+            width={colWidth}
             paddingX={1}
           >
             <Text bold color="cyan">{col.name}</Text>
