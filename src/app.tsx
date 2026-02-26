@@ -17,7 +17,7 @@ const DASHBOARD_SHORTCUTS: Shortcut[] = [
   { key: 'space', action: 'mark' },
   { key: 'r', action: 'refresh' },
   { key: 'p', action: 'picker' },
-  { key: 'c', action: 'commit+push' },
+  { key: 'enter/c', action: 'commit+push' },
   { key: 'q', action: 'quit' },
 ];
 
@@ -94,7 +94,7 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
           });
         }
       }
-      if (input === 'c') {
+      if (input === 'c' || key.return) {
         if (!onSpawnClaude) return;
         if (markedPaths.size > 0) {
           onSpawnClaude([...markedPaths]);

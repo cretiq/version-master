@@ -31,6 +31,7 @@ interface ParseState {
   toolInput: string;
   inText: boolean;
   hadText: boolean;
+  textBuf: string;
 }
 
 function printToolCommand(name: string, rawInput: string): void {
@@ -157,7 +158,7 @@ export async function runClaudeCommitPush(repoPath: string): Promise<void> {
       resolve(1);
     });
 
-    const state: ParseState = { toolName: '', toolInput: '', inText: false, hadText: false };
+    const state: ParseState = { toolName: '', toolInput: '', inText: false, hadText: false, textBuf: '' };
     const rl = createInterface({ input: child.stdout! });
     rl.on('line', (line) => {
       try {
@@ -207,12 +208,11 @@ export async function runParallelCommitPush(repoPaths: string[]): Promise<void> 
           resolve(1);
         });
 
-        const state: ParseState = { toolName: '', toolInput: '', inText: false, hadText: false };
+        const state: ParseState = { toolName: '', toolInput: '', inText: false, hadText: false, textBuf: '' };
         const rl = createInterface({ input: child.stdout! });
         rl.on('line', (line) => {
           try {
             const ev = JSON.parse(line) as Record<string, unknown>;
-            // Buffered version of handleEvent — collect output into lines array
             if (ev.type === 'stream_event') {
               const e = ev.event as Record<string, unknown> | undefined;
               if (!e) return;
@@ -223,6 +223,7 @@ export async function runParallelCommitPush(repoPaths: string[]): Promise<void> 
                   state.toolInput = '';
                 } else if (block?.type === 'text') {
                   state.inText = true;
+                  state.textBuf = '';
                 }
                 return;
               }
@@ -231,11 +232,7 @@ export async function runParallelCommitPush(repoPaths: string[]): Promise<void> 
                 if (delta?.type === 'input_json_delta') {
                   state.toolInput += String(delta.partial_json ?? '');
                 } else if (delta?.type === 'text_delta' && state.inText) {
-                  const text = String(delta.text ?? '');
-                  if (text) {
-                    if (!state.hadText) state.hadText = true;
-                    push(`  ${text}`);
-                  }
+                  state.textBuf += String(delta.text ?? '');
                 }
                 return;
               }
@@ -254,7 +251,14 @@ export async function runParallelCommitPush(repoPaths: string[]): Promise<void> 
                   state.toolName = '';
                   state.toolInput = '';
                 }
-                if (state.inText) state.inText = false;
+                if (state.inText) {
+                  if (state.textBuf.trim()) {
+                    push(`  ${state.textBuf.trim()}`);
+                    state.hadText = true;
+                  }
+                  state.inText = false;
+                  state.textBuf = '';
+                }
                 return;
               }
               return;
