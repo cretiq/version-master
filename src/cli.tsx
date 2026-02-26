@@ -2,11 +2,11 @@
 import React from 'react';
 import { render } from 'ink';
 import { App } from './app.js';
-import { runClaudeCommitPush, waitForKeypress } from './data/claudeCommit.js';
+import { runParallelCommitPush, waitForKeypress } from './data/claudeCommit.js';
 
 async function main() {
   const forcePicker = process.argv.includes('--pick');
-  let spawnRequest: string | null = null;
+  let spawnRequest: string[] | null = null;
 
   while (true) {
     spawnRequest = null;
@@ -14,8 +14,8 @@ async function main() {
     const instance = render(
       <App
         forcePicker={forcePicker}
-        onSpawnClaude={(repoPath) => {
-          spawnRequest = repoPath;
+        onSpawnClaude={(repoPaths) => {
+          spawnRequest = repoPaths;
           instance.unmount();
         }}
       />
@@ -24,7 +24,7 @@ async function main() {
     await instance.waitUntilExit();
 
     if (spawnRequest) {
-      await runClaudeCommitPush(spawnRequest);
+      await runParallelCommitPush(spawnRequest);
       await waitForKeypress();
     } else {
       break;

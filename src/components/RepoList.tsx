@@ -6,9 +6,10 @@ import type { RepoInfo } from '../types.js';
 interface RepoListProps {
   repos: RepoInfo[];
   selectedIndex: number;
+  markedPaths: Set<string>;
 }
 
-export function RepoList({ repos, selectedIndex }: RepoListProps) {
+export function RepoList({ repos, selectedIndex, markedPaths }: RepoListProps) {
   if (repos.length === 0) {
     return (
       <Box justifyContent="center" paddingY={2}>
@@ -20,7 +21,7 @@ export function RepoList({ repos, selectedIndex }: RepoListProps) {
   return (
     <Box flexDirection="column">
       {repos.map((repo, i) => (
-        <RepoEntry key={repo.path} repo={repo} isSelected={i === selectedIndex} />
+        <RepoEntry key={repo.path} repo={repo} isSelected={i === selectedIndex} isMarked={markedPaths.has(repo.path)} />
       ))}
     </Box>
   );

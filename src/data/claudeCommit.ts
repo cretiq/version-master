@@ -173,6 +173,117 @@ export async function runClaudeCommitPush(repoPath: string): Promise<void> {
   }
 }
 
+export async function runParallelCommitPush(repoPaths: string[]): Promise<void> {
+  if (repoPaths.length === 1) {
+    await runClaudeCommitPush(repoPaths[0]!);
+    return;
+  }
+
+  const results = await Promise.all(
+    repoPaths.map(async (repoPath) => {
+      const lines: string[] = [];
+      const name = repoPath.split('/').pop() ?? repoPath;
+      const push = (msg: string) => lines.push(msg);
+
+      const exitCode = await new Promise<number | null>((resolve) => {
+        const child = spawn(
+          'claude',
+          [
+            '-p', PROMPT,
+            '--allowedTools', 'Bash(git *)',
+            '--output-format', 'stream-json',
+            '--verbose',
+            '--include-partial-messages',
+          ],
+          { cwd: repoPath, stdio: ['ignore', 'pipe', 'inherit'] },
+        );
+
+        child.on('error', (err) => {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+            push(`  ${RED}"claude" not found on PATH.${RESET}`);
+          } else {
+            push(`  ${RED}Spawn error: ${err.message}${RESET}`);
+          }
+          resolve(1);
+        });
+
+        const state: ParseState = { toolName: '', toolInput: '', inText: false, hadText: false };
+        const rl = createInterface({ input: child.stdout! });
+        rl.on('line', (line) => {
+          try {
+            const ev = JSON.parse(line) as Record<string, unknown>;
+            // Buffered version of handleEvent — collect output into lines array
+            if (ev.type === 'stream_event') {
+              const e = ev.event as Record<string, unknown> | undefined;
+              if (!e) return;
+              if (e.type === 'content_block_start') {
+                const block = e.content_block as Record<string, unknown> | undefined;
+                if (block?.type === 'tool_use') {
+                  state.toolName = String(block.name ?? '');
+                  state.toolInput = '';
+                } else if (block?.type === 'text') {
+                  state.inText = true;
+                }
+                return;
+              }
+              if (e.type === 'content_block_delta') {
+                const delta = e.delta as Record<string, unknown> | undefined;
+                if (delta?.type === 'input_json_delta') {
+                  state.toolInput += String(delta.partial_json ?? '');
+                } else if (delta?.type === 'text_delta' && state.inText) {
+                  const text = String(delta.text ?? '');
+                  if (text) {
+                    if (!state.hadText) state.hadText = true;
+                    push(`  ${text}`);
+                  }
+                }
+                return;
+              }
+              if (e.type === 'content_block_stop') {
+                if (state.toolName) {
+                  try {
+                    const input = JSON.parse(state.toolInput);
+                    if (state.toolName === 'Bash' && input.command) {
+                      push(`  ${CYAN}▸${RESET} ${input.command}`);
+                    } else {
+                      push(`  ${CYAN}▸${RESET} ${state.toolName}`);
+                    }
+                  } catch {
+                    push(`  ${CYAN}▸${RESET} ${state.toolName}`);
+                  }
+                  state.toolName = '';
+                  state.toolInput = '';
+                }
+                if (state.inText) state.inText = false;
+                return;
+              }
+              return;
+            }
+            if (ev.type === 'result' && ev.result && !state.hadText) {
+              push(`  ${GREEN}${ev.result}${RESET}`);
+            }
+          } catch { /* skip malformed */ }
+        });
+
+        child.on('close', (code) => resolve(code));
+      });
+
+      if (exitCode !== 0) {
+        push(`  ${RED}Exited with code ${exitCode ?? 'unknown'}${RESET}`);
+      }
+
+      return { name, lines };
+    }),
+  );
+
+  // Print all buffered output, grouped by repo
+  for (const { name, lines } of results) {
+    console.log(`\n  ${CYAN}${name}${RESET}`);
+    for (const line of lines) console.log(line);
+    console.log(`  ${GREEN}Done.${RESET}`);
+  }
+}
+
 export function waitForKeypress(): Promise<void> {
   return new Promise((resolve) => {
     console.log(`\n  ${DIM}Press any key to return…${RESET}`);

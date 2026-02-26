@@ -6,9 +6,10 @@ import type { RepoInfo } from '../types.js';
 interface RepoEntryProps {
   repo: RepoInfo;
   isSelected: boolean;
+  isMarked: boolean;
 }
 
-export function RepoEntry({ repo, isSelected }: RepoEntryProps) {
+export function RepoEntry({ repo, isSelected, isMarked }: RepoEntryProps) {
   return (
     <Box
       borderStyle="round"
@@ -17,6 +18,7 @@ export function RepoEntry({ repo, isSelected }: RepoEntryProps) {
       justifyContent="space-between"
     >
       <Box gap={2}>
+        {isMarked && <Text color="green">◉</Text>}
         <Text bold color={isSelected ? 'cyan' : undefined}>{repo.name}</Text>
         <Text color="blueBright">{repo.branch}</Text>
         {repo.upstream ? (

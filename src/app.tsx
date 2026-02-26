@@ -9,11 +9,12 @@ import type { RepoInfo, View, Shortcut } from './types.js';
 
 interface AppProps {
   forcePicker?: boolean;
-  onSpawnClaude?: (repoPath: string) => void;
+  onSpawnClaude?: (repoPaths: string[]) => void;
 }
 
 const DASHBOARD_SHORTCUTS: Shortcut[] = [
   { key: 'j/k', action: 'navigate' },
+  { key: 'space', action: 'mark' },
   { key: 'r', action: 'refresh' },
   { key: 'p', action: 'picker' },
   { key: 'c', action: 'commit+push' },
@@ -28,6 +29,7 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
+  const [markedPaths, setMarkedPaths] = useState<Set<string>>(new Set());
 
   const doRefresh = useCallback(async (paths: string[]) => {
     if (paths.length === 0) {
@@ -36,6 +38,7 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
       return;
     }
     setLoading(true);
+    setMarkedPaths(new Set());
     const info = await refreshAll(paths);
     setRepos(info);
     setLastRefresh(new Date());
@@ -80,10 +83,26 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
       if (input === 'p') {
         setView('picker');
       }
-      if (input === 'c') {
+      if (input === ' ') {
         const repo = repos[selectedIndex];
-        if (repo && repo.dirty > 0 && onSpawnClaude) {
-          onSpawnClaude(repo.path);
+        if (repo && repo.dirty > 0) {
+          setMarkedPaths((prev) => {
+            const next = new Set(prev);
+            if (next.has(repo.path)) next.delete(repo.path);
+            else next.add(repo.path);
+            return next;
+          });
+        }
+      }
+      if (input === 'c') {
+        if (!onSpawnClaude) return;
+        if (markedPaths.size > 0) {
+          onSpawnClaude([...markedPaths]);
+        } else {
+          const repo = repos[selectedIndex];
+          if (repo && repo.dirty > 0) {
+            onSpawnClaude([repo.path]);
+          }
         }
       }
       if (input === 'q') {
@@ -122,7 +141,7 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
           <Text color="cyan">Fetching git status...</Text>
         </Box>
       ) : (
-        <RepoList repos={repos} selectedIndex={selectedIndex} />
+        <RepoList repos={repos} selectedIndex={selectedIndex} markedPaths={markedPaths} />
       )}
 
       <Box marginTop={1}>
