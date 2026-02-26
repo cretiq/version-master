@@ -29,7 +29,7 @@ export function RepoEntry({ repo, isSelected }: RepoEntryProps) {
         {repo.error ? (
           <Text color="red">error</Text>
         ) : (
-          <StatusBadge ahead={repo.ahead} behind={repo.behind} />
+          <StatusBadge ahead={repo.ahead} behind={repo.behind} dirty={repo.dirty} />
         )}
       </Box>
     </Box>

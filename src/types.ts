@@ -5,6 +5,7 @@ export interface RepoInfo {
   upstream: string;
   ahead: number;
   behind: number;
+  dirty: number;
   error?: string;
 }
 

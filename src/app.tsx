@@ -9,16 +9,18 @@ import type { RepoInfo, View, Shortcut } from './types.js';
 
 interface AppProps {
   forcePicker?: boolean;
+  onSpawnClaude?: (repoPath: string) => void;
 }
 
 const DASHBOARD_SHORTCUTS: Shortcut[] = [
   { key: 'j/k', action: 'navigate' },
   { key: 'r', action: 'refresh' },
   { key: 'p', action: 'picker' },
+  { key: 'c', action: 'commit+push' },
   { key: 'q', action: 'quit' },
 ];
 
-export function App({ forcePicker }: AppProps) {
+export function App({ forcePicker, onSpawnClaude }: AppProps) {
   const { exit } = useApp();
   const [view, setView] = useState<View | null>(null);
   const [repos, setRepos] = useState<RepoInfo[]>([]);
@@ -77,6 +79,12 @@ export function App({ forcePicker }: AppProps) {
       }
       if (input === 'p') {
         setView('picker');
+      }
+      if (input === 'c') {
+        const repo = repos[selectedIndex];
+        if (repo && repo.dirty > 0 && onSpawnClaude) {
+          onSpawnClaude(repo.path);
+        }
       }
       if (input === 'q') {
         exit();

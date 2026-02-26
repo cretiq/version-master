@@ -41,6 +41,16 @@ export async function getUpstream(repoPath: string): Promise<string> {
   }
 }
 
+export async function getDirtyCount(repoPath: string): Promise<number> {
+  try {
+    const output = await git(repoPath, 'status', '--porcelain');
+    if (!output) return 0;
+    return output.split('\n').length;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getAheadBehind(
   repoPath: string,
   upstream: string

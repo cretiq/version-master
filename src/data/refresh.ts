@@ -1,11 +1,14 @@
 import { basename } from 'path';
-import { getBranch, getUpstream, getAheadBehind } from './gitInfo.js';
+import { getBranch, getUpstream, getAheadBehind, getDirtyCount } from './gitInfo.js';
 import type { RepoInfo } from '../types.js';
 
 async function fetchRepoInfo(repoPath: string): Promise<RepoInfo> {
   try {
-    const branch = await getBranch(repoPath);
-    const upstream = await getUpstream(repoPath);
+    const [branch, upstream, dirty] = await Promise.all([
+      getBranch(repoPath),
+      getUpstream(repoPath),
+      getDirtyCount(repoPath),
+    ]);
     const { ahead, behind } = await getAheadBehind(repoPath, upstream);
 
     return {
@@ -15,6 +18,7 @@ async function fetchRepoInfo(repoPath: string): Promise<RepoInfo> {
       upstream,
       ahead,
       behind,
+      dirty,
     };
   } catch (err: unknown) {
     return {
@@ -24,6 +28,7 @@ async function fetchRepoInfo(repoPath: string): Promise<RepoInfo> {
       upstream: '',
       ahead: 0,
       behind: 0,
+      dirty: 0,
       error: (err as Error).message,
     };
   }
