@@ -15,8 +15,11 @@ async function main() {
     tidy: TIDY_TASK,
   };
 
+  const clear = () => process.stdout.write('\x1b[2J\x1b[H');
+
   while (true) {
     spawnRequest = null;
+    clear();
 
     const instance = render(
       <App
