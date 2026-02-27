@@ -17,9 +17,10 @@ interface AppProps {
 const DASHBOARD_SHORTCUTS: Shortcut[] = [
   { key: 'j/k', action: 'navigate' },
   { key: 'space', action: 'mark' },
+  { key: 'a', action: 'select all' },
   { key: 'r', action: 'refresh' },
   { key: 'p', action: 'picker' },
-  { key: 'enter/c', action: 'commit+push' },
+  { key: 'c', action: 'commit+push' },
   { key: 't', action: 'tidy' },
   { key: 'q', action: 'quit' },
 ];
@@ -97,7 +98,13 @@ export function App({ forcePicker, onSpawn }: AppProps) {
           });
         }
       }
-      if (input === 'c' || key.return) {
+      if (input === 'a') {
+        const dirtyPaths = repos.filter((r) => r.dirty > 0).map((r) => r.path);
+        setMarkedPaths((prev) =>
+          prev.size === dirtyPaths.length ? new Set() : new Set(dirtyPaths),
+        );
+      }
+      if (input === 'c') {
         if (!onSpawn) return;
         if (markedPaths.size > 0) {
           onSpawn([...markedPaths], 'commit');
