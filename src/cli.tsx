@@ -2,12 +2,18 @@
 import React from 'react';
 import { render } from 'ink';
 import { App } from './app.js';
-import { runClaudeCommitPush, waitForKeypress } from './data/claudeCommit.js';
+import { runClaudeTask, waitForKeypress, COMMIT_TASK, TIDY_TASK, type ClaudeTask } from './data/claudeCommit.js';
 import { ParallelCommitView } from './components/ParallelCommitView.js';
+import type { SpawnMode } from './app.js';
 
 async function main() {
   const forcePicker = process.argv.includes('--pick');
-  let spawnRequest: string[] | null = null;
+  let spawnRequest: { paths: string[]; mode: SpawnMode } | null = null;
+
+  const TASKS: Record<SpawnMode, ClaudeTask> = {
+    commit: COMMIT_TASK,
+    tidy: TIDY_TASK,
+  };
 
   while (true) {
     spawnRequest = null;
@@ -15,8 +21,8 @@ async function main() {
     const instance = render(
       <App
         forcePicker={forcePicker}
-        onSpawnClaude={(repoPaths) => {
-          spawnRequest = repoPaths;
+        onSpawn={(repoPaths, mode) => {
+          spawnRequest = { paths: repoPaths, mode };
           instance.unmount();
         }}
       />
@@ -24,14 +30,15 @@ async function main() {
 
     await instance.waitUntilExit();
 
-    const paths = spawnRequest as string[] | null;
-    if (paths) {
-      if (paths.length === 1) {
-        await runClaudeCommitPush(paths[0]!);
+    const req = spawnRequest as { paths: string[]; mode: SpawnMode } | null;
+    if (req) {
+      const task = TASKS[req.mode];
+      if (req.paths.length === 1) {
+        await runClaudeTask(req.paths[0]!, task);
         await waitForKeypress();
       } else {
-        const commitView = render(<ParallelCommitView repoPaths={paths} />);
-        await commitView.waitUntilExit();
+        const view = render(<ParallelCommitView repoPaths={req.paths} task={task} />);
+        await view.waitUntilExit();
       }
     } else {
       break;

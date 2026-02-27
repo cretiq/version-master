@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { PROMPT } from '../data/claudeCommit.js';
+import type { ClaudeTask } from '../data/claudeCommit.js';
 
 const MAX_LINES = 25;
 
@@ -20,9 +20,10 @@ interface Column {
 
 interface Props {
   repoPaths: string[];
+  task: ClaudeTask;
 }
 
-export function ParallelCommitView({ repoPaths }: Props) {
+export function ParallelCommitView({ repoPaths, task }: Props) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const termWidth = stdout?.columns ?? 120;
@@ -60,8 +61,8 @@ export function ParallelCommitView({ repoPaths }: Props) {
       const child = spawn(
         'claude',
         [
-          '-p', PROMPT,
-          '--allowedTools', 'Bash(git *)',
+          '-p', task.prompt,
+          '--allowedTools', task.allowedTools,
           '--output-format', 'stream-json',
           '--verbose',
           '--include-partial-messages',

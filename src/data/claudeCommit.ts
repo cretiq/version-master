@@ -3,7 +3,13 @@ import { openSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { ReadStream } from 'node:tty';
 
-export const PROMPT = `You are an automated commit-push bot. Do NOT ask questions — just act.
+export interface ClaudeTask {
+  prompt: string;
+  allowedTools: string;
+}
+
+export const COMMIT_TASK: ClaudeTask = {
+  prompt: `You are an automated commit-push bot. Do NOT ask questions — just act.
 
 Steps:
 1. Run \`git status\` to see all changes (staged, unstaged, untracked)
@@ -15,7 +21,30 @@ Steps:
 Rules:
 - Never ask the user anything. Just execute.
 - If there are no changes at all, say "Nothing to commit" and stop.
-- Commit message must be lowercase conventional format.`;
+- Commit message must be lowercase conventional format.`,
+  allowedTools: 'Bash(git *)',
+};
+
+export const TIDY_TASK: ClaudeTask = {
+  prompt: `You are an automated git tidy bot. Do NOT ask questions — just act.
+
+Steps:
+1. Run \`git status\` to list all untracked and modified files
+2. If clean — say "Nothing to tidy" and stop
+3. Classify each untracked file/directory:
+   - IGNORE: build artifacts (dist/, build/, out/), dependencies (node_modules/, vendor/, .venv/, __pycache__/), caches (*.tmp, *.swp, *cache*), OS/IDE (.DS_Store, .idea/, .vscode/settings.json), secrets (.env, .env.*, *.pem, *.key), logs (*.log), backups (*.bak, *.backup), generated (coverage/, .nyc_output/)
+   - COMMIT: source code, configs, docs, tests, CI files, lock files, .gitignore itself
+   - When unsure, read the file to determine if generated or authored — if still unclear, commit it
+4. Read existing .gitignore (create if missing), add new IGNORE entries grouped by category, don't duplicate
+5. Stage .gitignore + all COMMIT files by name (never \`git add .\` or \`git add -A\`)
+6. Commit with a concise conventional message: \`type(scope): description\` (max 72 chars)
+7. Push with \`git push -u origin HEAD\`
+
+Rules:
+- Never ask the user anything. Just execute.
+- Commit message must be lowercase conventional format.`,
+  allowedTools: 'Bash(git *),Read,Edit,Write,Grep,Glob',
+};
 
 // ANSI helpers
 const DIM = '\x1b[2m';
@@ -132,15 +161,15 @@ function handleEvent(raw: unknown, state: ParseState): void {
   }
 }
 
-export async function runClaudeCommitPush(repoPath: string): Promise<void> {
-  console.log(`\n${DIM}  commit-push: ${repoPath}${RESET}`);
+export async function runClaudeTask(repoPath: string, task: ClaudeTask): Promise<void> {
+  console.log(`\n${DIM}  ${repoPath}${RESET}`);
 
   const exitCode = await new Promise<number | null>((resolve) => {
     const child = spawn(
       'claude',
       [
-        '-p', PROMPT,
-        '--allowedTools', 'Bash(git *)',
+        '-p', task.prompt,
+        '--allowedTools', task.allowedTools,
         '--output-format', 'stream-json',
         '--verbose',
         '--include-partial-messages',

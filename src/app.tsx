@@ -7,9 +7,11 @@ import { loadConfig, saveConfig } from './data/config.js';
 import { refreshAll } from './data/refresh.js';
 import type { RepoInfo, View, Shortcut } from './types.js';
 
+export type SpawnMode = 'commit' | 'tidy';
+
 interface AppProps {
   forcePicker?: boolean;
-  onSpawnClaude?: (repoPaths: string[]) => void;
+  onSpawn?: (repoPaths: string[], mode: SpawnMode) => void;
 }
 
 const DASHBOARD_SHORTCUTS: Shortcut[] = [
@@ -18,10 +20,11 @@ const DASHBOARD_SHORTCUTS: Shortcut[] = [
   { key: 'r', action: 'refresh' },
   { key: 'p', action: 'picker' },
   { key: 'enter/c', action: 'commit+push' },
+  { key: 't', action: 'tidy' },
   { key: 'q', action: 'quit' },
 ];
 
-export function App({ forcePicker, onSpawnClaude }: AppProps) {
+export function App({ forcePicker, onSpawn }: AppProps) {
   const { exit } = useApp();
   const [view, setView] = useState<View | null>(null);
   const [repos, setRepos] = useState<RepoInfo[]>([]);
@@ -95,13 +98,24 @@ export function App({ forcePicker, onSpawnClaude }: AppProps) {
         }
       }
       if (input === 'c' || key.return) {
-        if (!onSpawnClaude) return;
+        if (!onSpawn) return;
         if (markedPaths.size > 0) {
-          onSpawnClaude([...markedPaths]);
+          onSpawn([...markedPaths], 'commit');
         } else {
           const repo = repos[selectedIndex];
           if (repo && repo.dirty > 0) {
-            onSpawnClaude([repo.path]);
+            onSpawn([repo.path], 'commit');
+          }
+        }
+      }
+      if (input === 't') {
+        if (!onSpawn) return;
+        if (markedPaths.size > 0) {
+          onSpawn([...markedPaths], 'tidy');
+        } else {
+          const repo = repos[selectedIndex];
+          if (repo) {
+            onSpawn([repo.path], 'tidy');
           }
         }
       }
