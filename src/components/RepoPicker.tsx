@@ -5,9 +5,10 @@ import { scanForRepos } from '../data/scan.js';
 interface RepoPickerProps {
   preSelected: string[];
   onConfirm: (selected: string[]) => void;
+  onCancel?: () => void;
 }
 
-export function RepoPicker({ preSelected, onConfirm }: RepoPickerProps) {
+export function RepoPicker({ preSelected, onConfirm, onCancel }: RepoPickerProps) {
   const { exit } = useApp();
   const [repos, setRepos] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set(preSelected));
@@ -54,7 +55,7 @@ export function RepoPicker({ preSelected, onConfirm }: RepoPickerProps) {
       }
     }
     if (input === 'q') {
-      exit();
+      onCancel ? onCancel() : exit();
     }
   });
 
@@ -104,7 +105,7 @@ export function RepoPicker({ preSelected, onConfirm }: RepoPickerProps) {
         <Box gap={1}><Text color="cyan" bold>space</Text><Text dimColor>toggle</Text></Box>
         <Box gap={1}><Text color="cyan" bold>a</Text><Text dimColor>all</Text></Box>
         <Box gap={1}><Text color="cyan" bold>enter</Text><Text dimColor>confirm</Text></Box>
-        <Box gap={1}><Text color="cyan" bold>q</Text><Text dimColor>quit</Text></Box>
+        <Box gap={1}><Text color="cyan" bold>q</Text><Text dimColor>back</Text></Box>
       </Box>
     </Box>
   );

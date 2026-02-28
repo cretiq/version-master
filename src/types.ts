@@ -1,3 +1,13 @@
+export interface VercelInfo {
+  projectName: string;
+  projectId: string;
+  teamSlug: string | null;
+  prodUrl: string | null;
+  deployState: string | null;
+  healthy: boolean | null;
+  lastDeployAt: number | null;
+}
+
 export interface RepoInfo {
   path: string;
   name: string;
@@ -6,14 +16,20 @@ export interface RepoInfo {
   ahead: number;
   behind: number;
   dirty: number;
+  loading?: boolean;
   error?: string;
+  vercel?: VercelInfo;
+  techStack?: string[];
 }
 
 export interface Config {
   repos: string[];
+  sortMode?: SortMode;
 }
 
 export type View = 'picker' | 'dashboard';
+
+export type SortMode = 'vercel' | 'dirty' | 'name';
 
 export interface Shortcut {
   key: string;
