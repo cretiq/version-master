@@ -1,13 +1,13 @@
 ---
-description: "Keep CLAUDE.md accurate — verifies documented paths, conventions, and architecture against the real codebase. Prevents config drift."
+description: "Keep project CLAUDE.md accurate — verifies documented paths, conventions, and architecture against the real codebase. Prevents config drift."
 allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 
-# Update CLAUDE.md
+# Update Project CLAUDE.md
 
-Verify and update `CLAUDE.md` against the actual codebase.
+Verify and update the project's CLAUDE.md against the actual codebase. CLAUDE.md is loaded into every conversation — it's the most expensive context real estate. Every token must earn its place.
 
-**Target file:** `CLAUDE.md` (project root)
+**Target file:** `.claude/CLAUDE.md` (or project root `CLAUDE.md` — wherever the project keeps it).
 
 ## Step 1: Determine Scope
 
@@ -15,94 +15,82 @@ If `$ARGUMENTS` is provided, focus on that section/topic only.
 
 If no arguments, detect from context:
 1. Check recent git changes: `git diff --name-only HEAD~10`
-2. Map changed files to CLAUDE.md sections (see Section Map below)
+2. Read current CLAUDE.md — identify which sections are affected by changed files
 3. Scope the update to affected sections
 
-## Step 2: Locate the Codebase
+## Step 2: Verify Existing Content
 
-Determine the current worktree root:
-```bash
-git rev-parse --show-toplevel
-```
+Read CLAUDE.md and for each claim, verify it against the codebase:
 
-This is the codebase to verify against. All grep/glob searches run here.
+1. **Paths** — do documented paths still exist? `Glob` each one.
+2. **Conventions** — are stated patterns still followed? `Grep` for examples.
+3. **Glossary terms** — are abbreviations/terms still used in the code?
+4. **Non-obvious notes** — are rationale/gotchas still accurate?
 
-## Step 3: Verify Each Section
+Flag discrepancies:
+- Path moved/deleted → update or remove
+- Convention changed → correct it
+- New non-obvious knowledge from recent changes → add it
 
-Work through the relevant sections of CLAUDE.md. For each, compare documented content against the actual codebase.
+## Step 3: Value Filter
 
-### Section Map
+Before adding anything new, apply the same filter as sync-docs:
 
-| CLAUDE.md Section | What to Verify | How |
-|---|---|---|
-| **Project Structure** | Directory tree still matches | `ls` the documented dirs, check for new top-level dirs |
-| **Architecture** | Component patterns still hold | Grep for documented patterns, verify imports |
-| **Dependencies** | Package versions still accurate | Check `package.json` |
-| **Key Conventions** | Naming patterns still followed | Grep for component/module naming patterns |
-| **Build & Run** | Commands still work | Verify scripts in `package.json` |
-| **File Paths** | Referenced files still exist | Glob for documented paths |
+> "Could Claude discover this in ≤3 tool calls?"
 
-### For Each Section:
+**Belongs in CLAUDE.md** (loaded every conversation):
+- Project identity — what is this, tech stack, package structure (1-2 lines)
+- Glossary — domain abbreviations that appear in code/commits/conversations
+- Key paths — the 5-10 entry points for orientation (not an exhaustive file tree)
+- Non-obvious gotchas — things that apply broadly and would bite you in any task
 
-1. **Read the section** from CLAUDE.md
-2. **Grep/Glob to verify** each documented path, pattern, or convention
-3. **Check for new additions** — are there new components, modules, etc. that should be documented?
-4. **Flag discrepancies:**
-   - Path no longer exists → needs removal or update
-   - New pattern not documented → needs addition
-   - Convention changed → needs correction
+**Belongs in skills** (loaded on-demand):
+- Detailed conventions for a specific subsystem
+- Troubleshooting steps
+- Operational procedures
+- Coordination patterns between components
 
-## Step 4: Check for Missing Sections
+**Belongs nowhere** (discoverable):
+- File inventories, component lists, endpoint lists
+- Type definitions, schema dumps
+- Prop descriptions, CSS class lists
 
-Look for significant codebase features not covered by CLAUDE.md:
+If something is already covered by a skill, CLAUDE.md should have at most a one-line mention, not a duplicate explanation.
 
-- **New top-level directories** that aren't in Project Structure
-- **New architectural patterns** not in Architecture
-- **New component categories** not documented
-- **New data modules** or integrations
-- **New conventions** that have emerged (check recent commits for recurring patterns)
+## Step 4: Apply Updates
 
-## Step 5: Apply Updates
+Edit CLAUDE.md in-place.
 
-Edit `CLAUDE.md` in-place.
+**Rules:**
+- Keep existing section ordering — don't reorganize
+- Add to existing sections rather than creating new ones
+- Remove items confirmed deleted from the codebase
+- Match the existing style (read the file — don't impose a template)
+- When unsure about removing, ask the user
 
-**Update rules:**
-- Keep the same section ordering — don't reorganize
-- Keep the same concise style — bullet points, tables, code blocks
-- Add new entries to existing sections rather than creating new sections
-- Only create a new section if the topic genuinely doesn't fit anywhere
-- Remove documented items only if they're confirmed deleted from the codebase
-- When in doubt about removing something, add a comment like `<!-- verify: still used? -->` instead
+## Step 5: Size Check
 
-**Style to match:**
-- Terse headings (e.g., "Key Conventions", not "Key Naming Conventions and Patterns")
-- Bullet points with `**bold label:**` followed by path or explanation
-- Tables for structured data
-- Code blocks for commands, paths, and architecture diagrams
+After edits, verify CLAUDE.md is still lean:
+- Under ~50 lines for small projects (<50 source files)
+- Under ~100 lines for medium projects
+- If it's growing past these, content probably belongs in a skill instead
 
 ## Step 6: Report
 
 ```
-## CLAUDE.md Verification Report
+## CLAUDE.md Verification
 
-### Verified Sections
-- {section} — ✅ accurate / ⚠️ updated / ❌ stale content found
-
-### Changes Applied
+### Changes
 - {section}: {what changed and why}
 
-### New Content Added
-- {section}: {what was added}
-
 ### Suggestions
-- {anything that needs manual verification or team input}
+- {anything needing manual verification or that should move to a skill}
 ```
 
 ## Rules
 
-- **Edit `CLAUDE.md` at project root only**
-- **Evidence-based** — only change what's confirmed by grep/glob against the codebase
-- **Preserve structure** — maintain existing section order and formatting style
-- **Keep it concise** — CLAUDE.md is a quick reference, not a comprehensive guide. Detailed content belongs in skills.
-- **Don't duplicate skills** — if something is thoroughly covered by a skill, CLAUDE.md should have a brief summary at most
-- **Ask before removing** — if unsure whether something is still relevant, ask the user
+- **Every token must earn its place** — CLAUDE.md costs context in every single conversation
+- **Evidence-based** — only change what's confirmed by grep/glob
+- **Don't duplicate skills** — detailed knowledge belongs in skills, not CLAUDE.md
+- **Keep it concise** — quick reference, not comprehensive guide
+- **Ask before removing** — if unsure whether something is still relevant, ask

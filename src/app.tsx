@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { RepoList } from './components/RepoList.js';
 import { RepoPicker } from './components/RepoPicker.js';
 import { StatusBar } from './components/StatusBar.js';
+import { ClaudeGauge } from './components/ClaudeGauge.js';
 import { loadConfig, saveConfig } from './data/config.js';
 import { refreshAll } from './data/refresh.js';
+import { useClaudeUsage } from './hooks/useClaudeUsage.js';
 import type { RepoInfo, View, Shortcut } from './types.js';
 
 export type SpawnMode = 'commit' | 'tidy';
@@ -27,6 +29,7 @@ const DASHBOARD_SHORTCUTS: Shortcut[] = [
 
 export function App({ forcePicker, onSpawn }: AppProps) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const [view, setView] = useState<View | null>(null);
   const [repos, setRepos] = useState<RepoInfo[]>([]);
   const [repoPaths, setRepoPaths] = useState<string[]>([]);
@@ -34,6 +37,8 @@ export function App({ forcePicker, onSpawn }: AppProps) {
   const [lastRefresh, setLastRefresh] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
   const [markedPaths, setMarkedPaths] = useState<Set<string>>(new Set());
+  const claudeUsage = useClaudeUsage(view === 'dashboard');
+  const repoPathsRef = useRef(repoPaths);
 
   const doRefresh = useCallback(async (paths: string[]) => {
     if (paths.length === 0) {
@@ -48,6 +53,18 @@ export function App({ forcePicker, onSpawn }: AppProps) {
     setLastRefresh(new Date());
     setLoading(false);
   }, []);
+
+  // Keep ref in sync for interval closure
+  useEffect(() => { repoPathsRef.current = repoPaths; }, [repoPaths]);
+
+  // Auto-refresh repo statuses every 60s on dashboard
+  useEffect(() => {
+    if (view !== 'dashboard') return;
+    const id = setInterval(() => {
+      if (repoPathsRef.current.length > 0) doRefresh(repoPathsRef.current);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [view, doRefresh]);
 
   // Load config on mount
   useEffect(() => {
@@ -164,6 +181,8 @@ export function App({ forcePicker, onSpawn }: AppProps) {
       ) : (
         <RepoList repos={repos} selectedIndex={selectedIndex} markedPaths={markedPaths} />
       )}
+
+      <ClaudeGauge usage={claudeUsage} width={stdout?.columns ?? 80} />
 
       <Box marginTop={1}>
         <StatusBar shortcuts={DASHBOARD_SHORTCUTS} lastRefresh={lastRefresh} />

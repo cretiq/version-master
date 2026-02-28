@@ -19,3 +19,12 @@ export interface Shortcut {
   key: string;
   action: string;
 }
+
+/** All timestamps are unix seconds (not ms). */
+export interface ClaudeUsage {
+  fiveHourPct: number;
+  sevenDayPct: number;
+  fiveHourResetsAt: number;
+  sevenDayResetsAt: number;
+  updated: number;
+}
