@@ -80,15 +80,18 @@ export async function fetchVercelInfo(repoPath: string): Promise<VercelInfo | nu
   const [teamSlug, domainsData, deploymentsData] = await Promise.all([
     getTeamSlug(project.orgId, token),
     apiFetch(`/v9/projects/${project.projectId}/domains`, token, project.orgId),
-    apiFetch(`/v6/deployments?projectId=${project.projectId}&target=production&limit=1`, token, project.orgId),
+    apiFetch(`/v6/deployments?projectId=${project.projectId}&limit=1`, token, project.orgId),
   ]);
 
   const domains: string[] = domainsData?.domains?.map((d: any) => d.name) ?? [];
   const deployment = deploymentsData?.deployments?.[0] ?? null;
 
   const prodUrl = domains[0] ?? deployment?.url ?? null;
-  const deployState: string | null = deployment?.readyState ?? null;
+  const deployState: string | null = deployment?.state ?? deployment?.readyState ?? null;
   const lastDeployAt: number | null = deployment?.created ?? null;
+  const errorCode: string | undefined = deployment?.errorCode;
+  const errorMessage: string | undefined = deployment?.errorMessage;
+  const inspectorUrl: string | undefined = deployment?.inspectorUrl;
 
   // Resolve project name from deployment or fall back to projectId
   const projectName = deployment?.name ?? project.projectId;
@@ -106,5 +109,8 @@ export async function fetchVercelInfo(repoPath: string): Promise<VercelInfo | nu
     deployState,
     healthy,
     lastDeployAt,
+    errorCode,
+    errorMessage,
+    inspectorUrl,
   };
 }

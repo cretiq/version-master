@@ -11,13 +11,17 @@ interface RepoPickerProps {
 export function RepoPicker({ preSelected, onConfirm, onCancel }: RepoPickerProps) {
   const { exit } = useApp();
   const [repos, setRepos] = useState<string[]>([]);
+  const [broken, setBroken] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set(preSelected));
   const [cursor, setCursor] = useState(0);
   const [scanning, setScanning] = useState(true);
 
   useEffect(() => {
     scanForRepos().then((found) => {
-      setRepos(found);
+      const foundSet = new Set(found);
+      const orphaned = preSelected.filter((p) => !foundSet.has(p));
+      setBroken(new Set(orphaned));
+      setRepos([...found, ...orphaned]);
       setScanning(false);
     });
   }, []);
@@ -54,7 +58,7 @@ export function RepoPicker({ preSelected, onConfirm, onCancel }: RepoPickerProps
         setSelected(new Set(repos));
       }
     }
-    if (input === 'q') {
+    if (input === 'q' || key.escape) {
       onCancel ? onCancel() : exit();
     }
   });
@@ -86,6 +90,7 @@ export function RepoPicker({ preSelected, onConfirm, onCancel }: RepoPickerProps
         {repos.map((repo, i) => {
           const isSelected = selected.has(repo);
           const isCursor = i === cursor;
+          const isBroken = broken.has(repo);
           const name = repo.replace(/^.*\/CursorProjects\//, '');
           return (
             <Box key={repo} gap={1}>
@@ -95,7 +100,8 @@ export function RepoPicker({ preSelected, onConfirm, onCancel }: RepoPickerProps
               <Text color={isSelected ? 'green' : 'gray'}>
                 {isSelected ? '◉' : '○'}
               </Text>
-              <Text bold={isCursor}>{name}</Text>
+              <Text bold={isCursor} dimColor={isBroken}>{name}</Text>
+              {isBroken && <Text color="red">not found</Text>}
             </Box>
           );
         })}

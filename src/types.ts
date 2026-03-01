@@ -6,6 +6,9 @@ export interface VercelInfo {
   deployState: string | null;
   healthy: boolean | null;
   lastDeployAt: number | null;
+  errorCode?: string;
+  errorMessage?: string;
+  inspectorUrl?: string;
 }
 
 export interface RepoInfo {

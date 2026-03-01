@@ -30,6 +30,7 @@ const STATE_COLORS: Record<string, string> = {
 
 export function VercelDetail({ vercel }: { vercel: VercelInfo }) {
   const stateColor = (vercel.deployState && STATE_COLORS[vercel.deployState]) ?? 'gray';
+  const hasError = vercel.errorCode || vercel.errorMessage;
 
   return (
     <Box>
@@ -37,22 +38,34 @@ export function VercelDetail({ vercel }: { vercel: VercelInfo }) {
       <Box width={COL.state}>
         <Text color={stateColor}>▲ {vercel.deployState ?? 'UNKNOWN'}</Text>
       </Box>
-      <Box width={COL.url}>
-        {vercel.prodUrl ? (
-          <Text color="blueBright" wrap="truncate">{vercel.prodUrl}</Text>
-        ) : (
-          <Text> </Text>
-        )}
-      </Box>
-      <Box width={COL.health}>
-        {vercel.healthy !== null ? (
-          <Text color={vercel.healthy ? 'green' : 'red'}>
-            {vercel.healthy ? '● healthy' : '● down'}
+      {hasError ? (
+        <Box width={COL.url + COL.health} flexShrink={1}>
+          <Text color="red" dimColor wrap="truncate">
+            {vercel.errorCode && vercel.errorMessage
+              ? `${vercel.errorCode}: ${vercel.errorMessage}`
+              : vercel.errorMessage ?? vercel.errorCode}
           </Text>
-        ) : (
-          <Text> </Text>
-        )}
-      </Box>
+        </Box>
+      ) : (
+        <>
+          <Box width={COL.url}>
+            {vercel.prodUrl ? (
+              <Text color="blueBright" wrap="truncate">{vercel.prodUrl}</Text>
+            ) : (
+              <Text> </Text>
+            )}
+          </Box>
+          <Box width={COL.health}>
+            {vercel.healthy !== null ? (
+              <Text color={vercel.healthy ? 'green' : 'red'}>
+                {vercel.healthy ? '● healthy' : '● down'}
+              </Text>
+            ) : (
+              <Text> </Text>
+            )}
+          </Box>
+        </>
+      )}
       <Box flexGrow={1} justifyContent="flex-end">
         {vercel.lastDeployAt ? <Text dimColor>{timeAgo(vercel.lastDeployAt)}</Text> : <Text> </Text>}
       </Box>
