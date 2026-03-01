@@ -4,11 +4,12 @@ import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { RepoList } from './components/RepoList.js';
 import { RepoPicker } from './components/RepoPicker.js';
 import { StatusBar } from './components/StatusBar.js';
+import { HelpOverlay } from './components/HelpOverlay.js';
 import { ClaudeGauge } from './components/ClaudeGauge.js';
 import { loadConfig, saveConfig } from './data/config.js';
 import { fetchRepoInfo, skeletonRepo } from './data/refresh.js';
 import { useClaudeUsage } from './hooks/useClaudeUsage.js';
-import type { RepoInfo, View, Shortcut, SortMode } from './types.js';
+import type { RepoInfo, View, SortMode } from './types.js';
 
 const SORT_MODES: SortMode[] = ['vercel', 'dirty', 'name'];
 
@@ -32,21 +33,6 @@ interface AppProps {
   onSpawn?: (repoPaths: string[], mode: SpawnMode) => void;
 }
 
-const DASHBOARD_SHORTCUTS: Shortcut[] = [
-  { key: 'j/k', action: 'navigate' },
-  { key: 'space', action: 'mark' },
-  { key: 'a', action: 'select all' },
-  { key: 'r', action: 'refresh' },
-  { key: 'p', action: 'picker' },
-  { key: 'c', action: 'commit+push' },
-  { key: 't', action: 'tidy' },
-  { key: 's', action: 'sort' },
-  { key: 'd/D', action: 'detail/all' },
-  { key: 'o', action: 'open site' },
-  { key: 'v', action: 'vercel' },
-  { key: 'q', action: 'quit' },
-];
-
 export function App({ forcePicker, onSpawn }: AppProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
@@ -58,6 +44,7 @@ export function App({ forcePicker, onSpawn }: AppProps) {
   const [markedPaths, setMarkedPaths] = useState<Set<string>>(new Set());
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<SortMode>('name');
+  const [showHelp, setShowHelp] = useState(false);
   const claudeUsage = useClaudeUsage(view === 'dashboard');
   const sortedRepos = useMemo(() => sortRepos(repos, sortMode), [repos, sortMode]);
   const repoPathsRef = useRef(repoPaths);
@@ -116,6 +103,15 @@ export function App({ forcePicker, onSpawn }: AppProps) {
 
   useInput(
     (input, key) => {
+      if (input === '?') {
+        setShowHelp((v) => !v);
+        return;
+      }
+      if (key.escape && showHelp) {
+        setShowHelp(false);
+        return;
+      }
+      if (showHelp) return;
       if (input === 'j' || key.downArrow) {
         setSelectedIndex((i) => Math.min(i + 1, sortedRepos.length - 1));
       }
@@ -248,8 +244,10 @@ export function App({ forcePicker, onSpawn }: AppProps) {
       </Box>
 
       <Box marginTop={1}>
-        <StatusBar shortcuts={DASHBOARD_SHORTCUTS} lastRefresh={lastRefresh} />
+        <StatusBar lastRefresh={lastRefresh} />
       </Box>
+
+      {showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
     </Box>
   );
 }

@@ -34,11 +34,6 @@ export type View = 'picker' | 'dashboard';
 
 export type SortMode = 'vercel' | 'dirty' | 'name';
 
-export interface Shortcut {
-  key: string;
-  action: string;
-}
-
 /** All timestamps are unix seconds (not ms). */
 export interface ClaudeUsage {
   fiveHourPct: number;

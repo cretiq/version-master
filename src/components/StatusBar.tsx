@@ -1,13 +1,11 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { Shortcut } from '../types.js';
 
 interface StatusBarProps {
-  shortcuts: Shortcut[];
   lastRefresh?: Date;
 }
 
-export function StatusBar({ shortcuts, lastRefresh }: StatusBarProps) {
+export function StatusBar({ lastRefresh }: StatusBarProps) {
   const timeStr = lastRefresh
     ? lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '—';
@@ -19,15 +17,11 @@ export function StatusBar({ shortcuts, lastRefresh }: StatusBarProps) {
       paddingX={1}
       justifyContent="space-between"
     >
-      <Box gap={2} flexWrap="wrap">
-        {shortcuts.map(({ key, action }) => (
-          <Box key={key} gap={1}>
-            <Text color="cyan" bold>{key}</Text>
-            <Text dimColor>{action}</Text>
-          </Box>
-        ))}
+      <Box gap={1}>
+        <Text color="cyan" bold>?</Text>
+        <Text dimColor>help</Text>
       </Box>
-      <Text dimColor> refreshed {timeStr}</Text>
+      <Text dimColor>refreshed {timeStr}</Text>
     </Box>
   );
 }
